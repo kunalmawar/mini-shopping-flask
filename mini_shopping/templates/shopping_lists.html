@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<div class="col-md-6"><h1 style="font-size: 32px">{% block title %}Shopping List{% endblock %}</h1></div>
+<div class="col-md-6" align="right" style="padding-bottom: 10px;">
+    <button type="button" class="btn btn-primary" onclick="open_modal()">Create List</button><br/>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 10px;">
+    <!--<h2>Bordered Table</h2>-->
+    <button style="float:right; margin-top: 16px; padding: 2px 7px;" class="btn" onclick="fill_table('qs')">GO</button>
+    <form style="float:right; margin-right: 10px;" onsubmit="return false;">
+      <input style="width: 200px;" type="text" id="query_string" placeholder="Search by name" required>
+    </form>
+
+    <div class="clearfix"></div>
+    <p id="not_found" style="display: none;">There are no shopping lists</p>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Title</th>
+            <th>Store</th>
+            <th>Last updated</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="shoppingModal" tabindex="-1" role="dialog" aria-labelledby="shoppingModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Create a new list</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="list_create_form">
+                    <input type="hidden" id="list_id" value="">
+                    <label>Title</label>
+                    <input type="text" name="title" id="title" required>
+                    <label>Store</label>
+                    <input type="text" name="store" id="store" required>
+                </form>
+                <div id="error_msg" style="color: darkred;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="create_list()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function (){
+        fill_table();
+    });
+
+    function open_modal(){
+        $('#list_id').val('');
+        $('#title').val('');
+        $('#store').val('');
+        $('#error_msg').hide();
+        $('#shoppingModal').modal('show');
+    }
+
+    function open_edit_modal(elem){
+        $('#error_msg').hide();
+        $('#title').val($(elem).closest('tr').find('.list_title').html());
+        $('#store').val($(elem).closest('tr').find('.list_store').html());
+        $('#list_id').val($(elem).closest('tr').find('.list_id').html());
+        $('#shoppingModal').modal('show');
+    }
+
+    function create_list(){
+        var title = $('#title').val();
+        var store = $('#store').val();
+        if (!title || !store) {
+            $('#error_msg').html('All fields are mandatory');
+            $('#error_msg').show();
+        }
+        $.ajax({
+            url: "{{ url_for('api.create_shopping_list') }}",
+            type: 'POST',
+            async: false,
+            data: {id: $('#list_id').val(), title: title, store: store},
+            success: function (result) {
+                if (result.status == 'success') {
+                    fill_table();
+                    $('#shoppingModal').modal('hide');
+                }
+                else {
+                    console.log(result.msg);
+                }
+            }
+        });
+    }
+
+    function fill_table(qs){
+        if (qs == 'qs') {
+            var query_s = $('#query_string').val();
+        }
+        else {
+            var query_s = '';
+        }
+        $.ajax({
+            url: "{{ url_for('api.fetch_shopping_lists') }}",
+            type: 'GET',
+            async: false,
+            data: {query_s: query_s},
+            success: function (result) {
+                if (result.status == 'success') {
+                    console.log(result.data.length);
+                    if (result.data.length == 0) {
+                        $('#not_found').show();
+                        $('table').hide();
+                    }
+                    else {
+                        $('tbody').html('');
+                        $('table').show();
+                        $('#not_found').hide();
+                        var final_string = '';
+                        for (var i = 0; i < result.data.length; i++) {
+                            final_string += '<tr><td class="list_id">' + result.data[i].id + '</td>';
+                            final_string += '<td class="list_title">' + result.data[i].title + '</td>';
+                            final_string += '<td class="list_store">' + result.data[i].store + '</td>';
+                            final_string += '<td>' + result.data[i].updated_on + '</td>';
+                            final_string += '<td><button class="btn btn-primary" onclick="open_edit_modal(this)">Edit</button>' +
+                                    '&nbsp;&nbsp;&nbsp;&nbsp;<a href="/products/?id=' + result.data[i].id + '">' +
+                                    '<button class="btn btn-primary">Add Items</button></a>&nbsp;&nbsp;&nbsp;&nbsp;' +
+                                    '<button class="btn btn-danger" onclick="delete_list(this)">Delete</button></td></tr>'
+                        }
+                        $('tbody').append(final_string);
+                    }
+                }
+                else {
+                    console.log(result.msg);
+                }
+            }
+        });
+    }
+
+    function delete_list(elem) {
+        $.ajax({
+            url: "{{ url_for('api.delete_shopping_list') }}",
+            type: 'POST',
+            async: false,
+            data: {id: $(elem).closest('tr').find('.list_id').html()},
+            success: function (result) {
+                if (result.status == 'success') {
+                    $(elem).closest('tr').remove();
+                }
+                else {
+                    console.log(result.msg);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

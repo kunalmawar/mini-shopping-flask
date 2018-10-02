@@ -1,0 +1,29 @@
+<!doctype html>
+<title>{% block title %}{% endblock %} - Mini Shopping</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<nav>
+    <h1>Mini Shopping</h1>
+    <ul>
+        {% if g.user %}
+            <li><a href="/"><button class="btn btn-info">Home</button></a></li>
+            <li><a href="{{ url_for('shopping_lists') }}"><button class="btn btn-info">Shopping List</button></a></li>
+            <li style="margin-top: 7px;"><span>{{ g.user.first_name }} {{ g.user.last_name }}</span></li>
+            <li style="margin-top: 7px;"><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+        {% else %}
+            <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+            <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+        {% endif %}
+    </ul>
+</nav>
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+    {% endfor %}
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    {% block content %}{% endblock %}
+</section>
